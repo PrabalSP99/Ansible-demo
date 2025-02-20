@@ -20,7 +20,7 @@ save the file and Run below command
     ssh IP-dns-address
 OR you can use 
 
-    ssh -i ~/.ssh/Practice-devops.pem ec2-user@ec2-13-235-83-194.ap-south-1.compute.amazonaws.com
+    ssh -i ~/.ssh/key.pem ec2-user@ip-address
 
 
         
