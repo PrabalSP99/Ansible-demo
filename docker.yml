@@ -1,0 +1,40 @@
+---
+# here we are installing docker and running pull image of nginx and run it on docker container
+- name: installing nginx and docker
+  hosts: all
+  become: true
+
+  vars:
+    image_name: nginx
+    container_name: nginx-container
+    container_ports: 
+      - "8080:80"
+
+  tasks:
+  - name: Install Docker
+    apt:
+      name: docker.io
+      state: present
+    when : ansible_distribution == "Ubuntu"
+
+  - name: Start Nginx-Docker service
+    service:
+      name: docker
+      state: started
+      enabled: true
+
+  - name: Pull Nginx image
+    docker_image:
+      name: "{{image_name}}"
+      source: pull
+
+  - name: Run Nginx container
+    docker_container:
+      name: "{{container_name}}"
+      image: "{{image_name}}"
+      ports: "{{container_ports}}"
+      state: started
+
+
+  
+ 
