@@ -1,0 +1,39 @@
+---
+- name: installing Multiple packages
+  hosts: all
+  become: true
+
+  vars:
+    package_name:
+      Ubuntu: apache2
+      Amazon: httpd
+
+  tasks:
+    - name: Checking OS version
+      debug:
+        msg: "This is {{ ansible_distribution }} version {{ ansible_distribution_version }}"
+
+    - name: Install Apache on Amazon Linux
+      yum:
+        name: "{{ package_name.Amazon }}"
+        state: present
+      when: ansible_distribution == 'Amazon'
+
+    - name: Install Apache on Ubuntu
+      apt:
+        name: "{{ package_name.Ubuntu }}"
+        state: present
+      when: ansible_distribution == 'Ubuntu'
+
+    - name: Install Nginx on Amazon Linux
+      yum:
+        name: nginx
+        state: present
+      when: absible_distribtion == 'Amazon'
+    
+    - name: Install nginx on Ubuntu
+      apt:
+        name: nginx
+        state: present
+      when: ansible_distribution == 'Ubuntu'
+        
