@@ -1,0 +1,89 @@
+---
+- name: Provision EC2 instance and install XX
+  hosts: localhost
+  # connection: local
+  gather_facts: no
+
+  tasks:
+    - name: Adding SSH access to security group
+      amazon.aws.ec2_group:
+        name: default
+        description: Security group for EC2 instance
+        region: ap-south-1
+        rules:
+          - proto: tcp
+            from_port: 8080
+            to_port: 8080
+            cidr_ip: 0.0.0.0/0
+          - proto: tcp
+            from_port: 22
+            to_port: 22
+            cidr_ip: 0.0.0.0/0  
+        rules_egress:
+          - proto: all
+            cidr_ip: 0.0.0.0/0
+      register: security_group
+            
+    - name: Launch EC2 instance
+      amazon.aws.ec2_instance:
+        name: my-instance
+        key_name: Devops
+        region: ap-south-1
+        instance_type: t2.micro
+        image_id: ami-0ddfba243cbee3768
+        count: 1
+        wait: yes
+        security_group: "{{ security_group.group_id }}"
+        # network:
+        #   assign_public_ip: yes  # Ensures instance gets a public IP
+      register: ec2
+
+    - name: Wait for instance to be ready
+      wait_for:
+        host: "{{ ec2.instances[0].public_dns_name }}"
+        port: 22
+        delay: 30
+        timeout: 300
+        state: started
+      when: ec2.instances is defined and ec2.instances|length > 0
+
+    - name: Add new instance to inventory dynamically 
+      add_host:
+        name: "{{ec2.instances[0].public_dns_name}}"
+        groups: dynamic_hosts
+        ansible_ssh_private_key_file: "/Users/prabal/downloads/devops.pem" # Path to your private key
+        ansible_ssh_user: ec2-user
+
+    - name: Debug dynamic inventory
+      debug:
+        var: groups['dynamic_hosts']
+    
+    - name: Install apache on dynamically added ec2
+      become: yes
+      package:
+        name: httpd
+        state: present
+      delegate_to: "{{ item }}"
+      with_items: 
+        - "{{ groups['dynamic_hosts'] }}"
+      vars:
+        ansible_ssh_private_key_file: "/Users/prabal/downloads/devops.pem" # Path to your private key
+        ansible_ssh_user: ec2-user
+      when: groups['dynamic_hosts'] is defined and groups['dynamic_hosts']| length > 0
+
+    # - name: Start apache service
+    #   become: yes
+    #   service:
+    #     name: httpd
+    #     state: started
+    #     enabled: true
+    #   delegate_to: "{{ item }}"
+    #   with_items: 
+    #     - "{{ groups['dynamic_ec2'] }}"
+    #   vars:
+    #     ansible_ssh_private_key_file: "/Users/prabal/downloads/devops.pem" # Path to your private key
+    #     ansible_ssh_user: ec2-user
+    #   when: groups['dynamic-ec2'] is defined and groups['dynamic-ec2']|length > 0
+     
+
+
